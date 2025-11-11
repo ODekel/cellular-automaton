@@ -1,0 +1,30 @@
+{
+  "image": {
+    "path": "./WorldCover Viewer-image.png",
+    "encoding": {
+      "water": ["#0064c8", "#000000"],
+      "ice": ["#f0f0f0", "#d8e1ea"],
+      "desert": ["#b4b4b4", "#b0b0b0"],
+      "grassland": ["#ffbb22", "#ffff4c", "#f096ff", "#0096a0", "#fae6a0", "#e897de", "#ffc0cb", "#db7093", "#ea99e3", "#f6f072", "#a5829f", "#c2c7a7", "#aea974", "#a7bba9", "#b4a38c", "#b5bbac"],
+      "forest": ["#006400", "#00cf75", "#036504"],
+      "city": ["#fa0000"]
+    }
+  },
+  "temps": {
+    "water": 20,
+    "ice": -10,
+    "desert": 30,
+    "grassland": 20,
+    "forest": 20,
+    "city": 20
+  },
+  "simulation": {
+    "forestPollutionAbsorptionRate": 0.04,
+    "cityPollutionGenerationRate": 0.04,
+    "iceHeatDissipationRate": 0.004058,
+    "desertHeatAbsorptionRate": 0.005,
+    "heatSpreadMultiplier": 0.2,
+    "cloudsFormProbability": 0.01,
+    "cloudsRainProbability": 0.2
+  }
+}
