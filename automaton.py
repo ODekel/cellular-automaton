@@ -23,6 +23,7 @@ class TileType(Enum):
     City = np.uint8(5)
 
 
+# Each direction is the vector that id added to the indices of the cell will result in the cell that the wind blows to.
 WIND_DIRECTIONS = np.array([[-1, 0], [-1, 1], [0, 1], [1, 1], [1, 0], [1, -1], [0, -1], [-1, -1]], dtype=np.int8)
 
 
@@ -35,6 +36,7 @@ class Grid:
     clouds: GridCloudsType
 
     def __post_init__(self):
+        # Make sure all shapes match.
         if self.tiles.shape != self.temps.shape or self.tiles.shape != self.pollution.shape or\
            self.tiles.shape != self.clouds.shape or\
            self.tiles.shape != self.winds.shape[:-1] or self.winds.shape[-1] != 2:
@@ -66,6 +68,8 @@ class WeatherSimulator:
 
     def next(self):
         h, w = self._grid.tiles.shape
+        # Calculate the cell the wind in each cell blows to.
+        # winds_loc[i, j] will be equal the indices of the cell the wind in cell [i, j] blows to.
         winds_loc = (self._indices + self._grid.winds).astype(np.intp)
         winds_loc[..., 0] %= h
         winds_loc[..., 1] %= w
@@ -80,30 +84,43 @@ class WeatherSimulator:
 
 
     def _next_temps(self, winds_loc_r, winds_loc_c):
+        # Heat loss or gain for each cell in correlation to the cell its wind is blowing to.
         temps_diff = (self._grid.temps[winds_loc_r, winds_loc_c] - self._grid.temps) * self._config.heat_spread_multiplier
         self._grid.temps += temps_diff + self._grid.pollution
+        # Add to each cell the heat gain or loss from all the cells whose winds are blowing to it.
         np.add.at(self._grid.temps, (winds_loc_r, winds_loc_c), -temps_diff)
+
         self._grid.temps[self._grid.tiles == TileType.Ice.value] -= self._config.ice_heat_dissipation_rate
         self._grid.temps[self._grid.tiles == TileType.Desert.value] += self._config.desert_heat_absorption_rate
 
     def _next_pollution(self, winds_loc_r, winds_loc_c):
+        # Forests absorb pollution.
         forests = self._grid.tiles == TileType.Forest.value
         next_pollution = self._grid.pollution.copy()
         next_pollution[forests] = \
             np.maximum(self._grid.pollution[forests] - self._config.forest_pollution_absorption_rate,
                        np.zeros_like(next_pollution[forests]))
+        # Each cell loses half of its pollution to the cell its wind is blowing towards.
         next_pollution /= 2
+        # Add pollution gain from all the cells whose winds are blowing to it.
         np.add.at(next_pollution, (winds_loc_r, winds_loc_c), next_pollution)
+        # Add new pollution from cities.
         next_pollution[self._grid.tiles == TileType.City.value] += self._config.city_pollution_generation_rate
+
         self._grid.pollution = next_pollution.astype(np.float32)
 
     def _next_clouds(self, winds_loc_r, winds_loc_c):
+        # Current cloud positions don't translate to next cloud positions, so start with clean slate.
         next_clouds = np.zeros_like(self._grid.clouds).astype(np.bool)
+        # Add clouds according to winds.
         np.add.at(next_clouds, (winds_loc_r, winds_loc_c), self._grid.clouds)
+        # Calculate clouds raining.
         clouds_mask = next_clouds == True
         next_clouds[clouds_mask] = self._rng.random(next_clouds[clouds_mask].shape) >= self._config.clouds_rain_probability
+        # Calculate clouds forming.
         no_clouds_mask = next_clouds == False
         next_clouds[no_clouds_mask] = self._rng.random(next_clouds[no_clouds_mask].shape) <= self._config.clouds_form_probability
+
         self._grid.clouds = next_clouds
 
     def _next_winds(self):
@@ -114,24 +131,26 @@ class WeatherSimulator:
         self._grid.tiles[(self._grid.tiles == TileType.Water.value) & (self._grid.temps < self._config.ice_threshold)] = TileType.Ice.value
 
 
-config = json.load(open("config.json"))
-colors = {}
+conf = json.load(open("config.json"))
 
-temps_map = {TileType[name.capitalize()].value: value for name, value in config["temps"].items()}
+# Create dictionary for converting tiles to starting temperatures.
+temps_map = {TileType[name.capitalize()].value: value for name, value in conf["temps"].items()}
 tiles_to_temps = np.vectorize(lambda tile: temps_map[tile], otypes=[np.float32])
 
 build_config = lambda d: {''.join(('_' + letter.lower() if letter.isupper() else letter for letter in key)): value for key, value in d.items()}
-sim_config = SimulatorConfig(**build_config(config['simulation']))
-image_config = ImageConfig(**build_config(config['image']), tiles_mapping={tile.name: tile.value for tile in TileType})
+sim_config = SimulatorConfig(**build_config(conf['simulation']))
+
+# Map generation config including dictionary to convert tile to its value.
+image_config = ImageConfig(**build_config(conf['image']), tiles_mapping={tile.name: tile.value for tile in TileType})
 tiles = build_map(image_config)
+
 temps = tiles_to_temps(tiles)
 pollution = np.zeros_like(tiles, dtype=np.float32)
 rng = np.random.default_rng()
 winds = rng.choice(WIND_DIRECTIONS, tiles.shape)
 clouds = rng.random(tiles.shape) <= (sim_config.clouds_form_probability / sim_config.clouds_rain_probability)
-grid = Grid(tiles, temps, winds, pollution, clouds)
 
-sim = WeatherSimulator(grid, sim_config)
+sim = WeatherSimulator(Grid(tiles, temps, winds, pollution, clouds), sim_config)
 
 viewer = WeatherSimulatorViewer(sim)
 viewer.run()

@@ -241,11 +241,13 @@ class WeatherSimulatorViewer:
         ax1.grid(True, alpha=0.3)
 
         norm_temps = np.array(self.temp_history).astype(np.float32)
+        tmp_std_dev = np.std(norm_temps)
         min_temp = np.min(norm_temps)
         max_temp = np.max(norm_temps)
         norm_temps = (norm_temps - min_temp) / (max_temp - min_temp)
 
         norm_pols = np.array(self.pollution_history).astype(np.float32)
+        pol_std_dev = np.std(norm_pols)
         min_pol = np.min(norm_pols)
         max_pol = np.max(norm_pols)
         norm_pols = (norm_pols - min_pol) / (max_pol - min_pol)
@@ -258,7 +260,7 @@ class WeatherSimulatorViewer:
         ax2_twin.set_ylabel('Average Pollution', color='gray')
         ax2.tick_params(axis='y', labelcolor='red')
         ax2_twin.tick_params(axis='y', labelcolor='gray')
-        ax2.set_title('Normalized Temperature and Pollution Over Time')
+        ax2.set_title(f'Normalized Temperature (std - {tmp_std_dev:.2f}) and Pollution (std - {pol_std_dev:.2f}) Over Time')
         ax2.grid(True, alpha=0.3)
 
         # Scatter plot - correlation
