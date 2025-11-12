@@ -50,6 +50,7 @@ class SimulatorConfig:
     heat_spread_multiplier: np.float32
     clouds_form_probability: np.float32
     clouds_rain_probability: np.float32
+    ice_threshold: np.float32
 
 
 class WeatherSimulator:
@@ -75,6 +76,7 @@ class WeatherSimulator:
         self._next_pollution(winds_loc_r, winds_loc_c)
         self._next_clouds(winds_loc_r, winds_loc_c)
         self._next_winds()
+        self._next_tiles()
 
 
     def _next_temps(self, winds_loc_r, winds_loc_c):
@@ -106,6 +108,10 @@ class WeatherSimulator:
 
     def _next_winds(self):
         self._grid.winds = self._rng.choice(WIND_DIRECTIONS, self._grid.tiles.shape)
+
+    def _next_tiles(self):
+        self._grid.tiles[(self._grid.tiles == TileType.Ice.value) & (self._grid.temps > self._config.ice_threshold)] = TileType.Water.value
+        self._grid.tiles[(self._grid.tiles == TileType.Water.value) & (self._grid.temps < self._config.ice_threshold)] = TileType.Ice.value
 
 
 config = json.load(open("config.json"))

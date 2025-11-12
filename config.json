@@ -21,10 +21,11 @@
   "simulation": {
     "forestPollutionAbsorptionRate": 0.04,
     "cityPollutionGenerationRate": 0.04,
-    "iceHeatDissipationRate": 0.004058,
-    "desertHeatAbsorptionRate": 0.005,
+    "iceHeatDissipationRate": 0.0125,
+    "desertHeatAbsorptionRate": 0.01,
     "heatSpreadMultiplier": 0.2,
     "cloudsFormProbability": 0.01,
-    "cloudsRainProbability": 0.2
+    "cloudsRainProbability": 0.2,
+    "iceThreshold": 0.0
   }
 }
